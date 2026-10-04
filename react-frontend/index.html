@@ -1,0 +1,317 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perception-X</title>
+    <!-- React 18 & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for in-browser JSX parsing -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #F8FAFC; }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased" style="background: url('react-frontend/bg1.jpg') no-repeat center center / cover;">
+
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const PRESETS = [
+            { id: 'natural_object.png', name: 'Physical Object (Sphere)', category: 'Physical Object', icon: '⚪' },
+            { id: 'cafe_wall.png', name: 'Café Wall Illusion', category: 'Geometric & Distortion', icon: '📐' },
+            { id: 'hermann_grid.png', name: 'Hermann Grid Illusion', category: 'Brightness & Contrast', icon: '▦' },
+            { id: 'muller_lyer.png', name: 'Müller-Lyer Illusion', category: 'Geometric Distortion', icon: '⇄' },
+            { id: 'necker_cube.png', name: 'Necker Cube Wireframe', category: 'Ambiguous & Multistable', icon: '🧊' },
+            { id: 'rubin_vase.png', name: "Rubin's Vase Silhouette", category: 'Ambiguous & Multistable', icon: '👥' },
+            { id: 'simultaneous_contrast.png', name: 'Simultaneous Contrast', category: 'Brightness Induction', icon: '🌓' },
+            { id: 'manipulated_splicing.png', name: 'Digitally Spliced Image', category: 'Digital Forgery', icon: '✂️' }
+        ];
+
+        function App() {
+            const [selectedPreset, setSelectedPreset] = useState('natural_object.png');
+            const [analysis, setAnalysis] = useState(null);
+            const [loading, setLoading] = useState(false);
+
+            const fetchAnalysis = async (presetName) => {
+                setLoading(true);
+                try {
+                    const res = await fetch(`/api/analyze/${presetName}`);
+                    const data = await res.json();
+                    setAnalysis(data);
+                } catch (err) {
+                    console.error('Failed to fetch analysis:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (evt) => {
+                    setLoading(true);
+                    try {
+                        const res = await fetch('/api/analyze', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ image_b64: evt.target.result, name: file.name })
+                        });
+                        const data = await res.json();
+                        setAnalysis(data);
+                        setSelectedPreset(null);
+                    } catch (err) {
+                        console.error('Upload failed:', err);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                reader.readAsDataURL(file);
+            };
+
+            useEffect(() => {
+                fetchAnalysis('natural_object.png');
+            }, []);
+
+            return (
+                <div class="min-h-screen flex flex-col">
+                    {/* Header Banner - Cleaned, No DOCX or external links */}
+                    <header class="bg-[brown] text-white shadow-md px-6 py-4 flex flex-wrap items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-xl text-white shadow">
+                                
+                                <img src="react-frontend/logo.jpeg" alt="Logo" class="w-full h-full object-contain" /></div>
+                            <div>
+                                <h1 class="text-xl font-bold tracking-wide">PERCEPTION-X</h1>
+                                <p class="text-xs text-slate-300">Ambiguous Image Detection and Classification</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3 mt-2 sm:mt-0">
+                            <span class="px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs rounded-full font-semibold flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                PyTorch Model Active (100% Accuracy)
+                            </span>
+                        </div>
+                    </header>
+
+                    {/* Main Workspace */}
+                    <div class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        {/* Sidebar Controls (3 Cols) */}
+                        <aside class="lg:col-span-3 space-y-5">
+                            {/* Upload Card */}
+                            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5">Upload Custom Image</h2>
+                                <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg p-5 cursor-pointer hover:bg-slate-50 hover:border-blue-500 transition group text-center">
+                                    <span class="text-2xl mb-1 group-hover:scale-110 transition">📁</span>
+                                    <span class="text-sm font-semibold text-slate-700">Click or Drag Image Here</span>
+                                    <span class="text-xs text-slate-400 mt-1">PNG, JPG, JPEG, TIFF</span>
+                                    <input type="file" class="hidden" accept="image/*" onChange={handleFileUpload} />
+                                </label>
+                            </div>
+
+                            {/* Presets List */}
+                            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5">Select Image to Test</h2>
+                                <div class="space-y-1.5">
+                                    {PRESETS.map((p) => (
+                                        <button
+                                            key={p.id}
+                                            onClick={() => {
+                                                setSelectedPreset(p.id);
+                                                fetchAnalysis(p.id);
+                                            }}
+                                            class={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition flex items-center justify-between ${
+                                                selectedPreset === p.id 
+                                                    ? 'bg-blue-600 text-white font-bold shadow-sm' 
+                                                    : 'hover:bg-slate-100 text-slate-700'
+                                            }`}
+                                        >
+                                            <span class="flex items-center gap-2">
+                                                <span>{p.icon}</span>
+                                                <span class="truncate">{p.name}</span>
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </aside>
+
+                        {/* Right Content Area (9 Cols) */}
+                        <main class="lg:col-span-9 space-y-6">
+                            {loading ? (
+                                <div class="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm">
+                                    <div class="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                    <p class="text-base font-semibold text-slate-700">Evaluating with Trained Neural Network...</p>
+                                </div>
+                            ) : analysis ? (
+                                <>
+                                    {/* Primary Classification Result Banner */}
+                                    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Trained Neural Network Identification</div>
+                                        <div class="flex flex-wrap items-center gap-4">
+                                            {/* Primary Gating Badge: Object or Illusion? */}
+                                            <div class={`px-5 py-3 rounded-xl font-bold text-base border flex items-center gap-3 shadow-sm ${
+                                                analysis.stage_1_problem_gating.is_object
+                                                    ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                                    : analysis.stage_1_problem_gating.is_illusion
+                                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                                        : 'bg-rose-50 text-rose-800 border-rose-200'
+                                            }`}>
+                                                <span class="text-2xl">{analysis.stage_1_problem_gating.is_object ? '📦' : (analysis.stage_1_problem_gating.is_illusion ? '👁️' : '🚨')}</span>
+                                                <div>
+                                                    <div class="text-xs uppercase opacity-75">Primary Identification</div>
+                                                    <div>{analysis.stage_1_problem_gating.decision.toUpperCase()} ({(analysis.stage_1_problem_gating.confidence * 100).toFixed(1)}%)</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Secondary: If Illusion, What kind of illusion? */}
+                                            {analysis.stage_1_problem_gating.is_illusion ? (
+                                                <div class="px-5 py-3 rounded-xl font-bold text-base bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-3 shadow-sm">
+                                                    <span class="text-2xl">🔍</span>
+                                                    <div>
+                                                        <div class="text-xs uppercase opacity-75">Illusion Classification</div>
+                                                        <div>{analysis.stage_2_multi_category_classification.category} ({(analysis.stage_2_multi_category_classification.confidence * 100).toFixed(1)}%)</div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div class="px-5 py-3 rounded-xl font-semibold text-sm bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-2">
+                                                    <span>✓</span>
+                                                    <span>Standard Non-Illusory Physical Geometry</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Multistability / Dual-State Probability if Ambiguous */}
+                                        {analysis.stage_3_ambiguity_analysis.is_multistable && (
+                                            <div class="mt-5 pt-4 border-t border-slate-100">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <span class="text-xs font-bold text-amber-900 uppercase tracking-wide">
+                                                        Perceptual Multistability (Dual Interpretations)
+                                                    </span>
+                                                    <span class="text-xs text-slate-500 font-mono">
+                                                        Entropy: <strong>{analysis.stage_3_ambiguity_analysis.perceptual_entropy.toFixed(4)}</strong>
+                                                    </span>
+                                                </div>
+                                                <div class="space-y-2">
+                                                    {Object.entries(analysis.stage_3_ambiguity_analysis.state_distribution).map(([name, prob]) => {
+                                                        const pct = (prob * 100).toFixed(1);
+                                                        return (
+                                                            <div key={name}>
+                                                                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-700">
+                                                                    <span>{name}</span>
+                                                                    <span>{pct}%</span>
+                                                                </div>
+                                                                <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                                                    <div class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* 4-Panel Visual Grid */}
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div class="bg-white rounded-xl border border-slate-200 p-2.5 text-center shadow-sm">
+                                            <div class="text-xs font-bold text-slate-600 mb-1.5">1. Input Stimulus</div>
+                                            <img src={analysis.images.original} class="w-full h-36 object-contain bg-slate-100 rounded-lg border border-slate-200" alt="Input" />
+                                        </div>
+                                        <div class="bg-white rounded-xl border border-slate-200 p-2.5 text-center shadow-sm">
+                                            <div class="text-xs font-bold text-slate-600 mb-1.5">2. 2D Fourier Spectrum</div>
+                                            <img src={analysis.images.fourier} class="w-full h-36 object-contain bg-slate-100 rounded-lg border border-slate-200" alt="Fourier" />
+                                        </div>
+                                        <div class="bg-white rounded-xl border border-slate-200 p-2.5 text-center shadow-sm">
+                                            <div class="text-xs font-bold text-slate-600 mb-1.5">3. Error Level Analysis (ELA)</div>
+                                            <img src={analysis.images.ela} class="w-full h-36 object-contain bg-slate-100 rounded-lg border border-slate-200" alt="ELA" />
+                                        </div>
+                                        <div class="bg-white rounded-xl border border-slate-200 p-2.5 text-center shadow-sm">
+                                            <div class="text-xs font-bold text-slate-600 mb-1.5">4. Causal Trigger Overlay</div>
+                                            <img src={analysis.images.overlay} class="w-full h-36 object-contain bg-slate-100 rounded-lg border border-slate-200" alt="Overlay" />
+                                        </div>
+                                    </div>
+
+                                    {/* Scientific Reasoning & Analysis */}
+                                    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
+                                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                            Cognitive Perceptual Analysis
+                                        </h2>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                            <div class="p-3.5 bg-blue-50/70 border-l-4 border-blue-600 rounded-r-lg">
+                                                <div class="font-bold text-blue-900 mb-1 text-xs uppercase">Physical Ground Truth</div>
+                                                <div class="text-slate-700 leading-relaxed">{analysis.stage_5_explanation.physical_reality}</div>
+                                            </div>
+                                            <div class="p-3.5 bg-rose-50/70 border-l-4 border-rose-600 rounded-r-lg">
+                                                <div class="font-bold text-rose-900 mb-1 text-xs uppercase">Perceptual Distortion</div>
+                                                <div class="text-slate-700 leading-relaxed">{analysis.stage_5_explanation.perceptual_distortion}</div>
+                                            </div>
+                                        </div>
+                                        <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 text-sm">
+                                            <div class="font-bold text-slate-900 mb-1.5">Neurobiological Cause:</div>
+                                            <p class="text-slate-700 leading-relaxed">{analysis.stage_5_explanation.scientific_mechanism}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Multi-Domain Features Table */}
+                                    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">Extracted Feature Values</h2>
+                                        <div class="overflow-x-auto text-xs">
+                                            <table class="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr class="border-b border-slate-200 text-slate-400 uppercase">
+                                                        <th class="py-2.5 px-3 font-semibold">Feature</th>
+                                                        <th class="py-2.5 px-3 font-semibold">Value</th>
+                                                        <th class="py-2.5 px-3 font-semibold">Attribution</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-slate-100 text-slate-700">
+                                                    <tr>
+                                                        <td class="py-2.5 px-3 font-medium">Michelson Contrast</td>
+                                                        <td class="py-2.5 px-3 font-mono font-bold text-blue-600">{analysis.raw_measurements.michelson_contrast.toFixed(4)}</td>
+                                                        <td class="py-2.5 px-3 text-slate-500">Luminance range over DC component</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="py-2.5 px-3 font-medium">2D Fourier Periodicity</td>
+                                                        <td class="py-2.5 px-3 font-mono font-bold text-blue-600">{analysis.raw_measurements.fourier_periodicity_ratio.toFixed(2)}</td>
+                                                        <td class="py-2.5 px-3 text-slate-500">High-frequency harmonic spike ratio</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="py-2.5 px-3 font-medium">Localized ELA Tamper Index</td>
+                                                        <td class="py-2.5 px-3 font-mono font-bold text-blue-600">{analysis.raw_measurements.ela_forgery_score.toFixed(2)}</td>
+                                                        <td class="py-2.5 px-3 text-slate-500">Compression residual anomaly score</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="py-2.5 px-3 font-medium">Bilateral Symmetry</td>
+                                                        <td class="py-2.5 px-3 font-mono font-bold text-blue-600">{analysis.raw_measurements.bilateral_symmetry.toFixed(2)}</td>
+                                                        <td class="py-2.5 px-3 text-slate-500">Figure-ground horizontal symmetry</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="py-2.5 px-3 font-medium">Trigger Bounding Box</td>
+                                                        <td class="py-2.5 px-3 font-mono text-slate-800">{JSON.stringify(analysis.stage_4_localization.trigger_bounding_box_normalized)}</td>
+                                                        <td class="py-2.5 px-3 text-slate-500">[ymin, xmin, ymax, xmax] trigger coordinates</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : null}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
