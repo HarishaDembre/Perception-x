@@ -1,4 +1,4 @@
-﻿"""
+"""
 Flask Backend Server for Perception-X React Frontend
 Provides REST API endpoints for image analysis, preset loading, and report launching.
 """
@@ -10,7 +10,7 @@ import json
 import base64
 import webbrowser
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, send_file
 from PIL import Image
 import numpy as np
 
@@ -88,30 +88,53 @@ def analyze_upload():
 @app.route("/api/open-docx", methods=["GET"])
 def open_docx():
     paths = [
+        os.path.join(os.path.dirname(__file__), "Perception_X_Research_Analysis_Report.docx"),
         os.path.expanduser("~") + "/Downloads/Perception_X_Research_Analysis_Report.docx",
-        os.path.expanduser("~") + "/Desktop/Perception_X_Research_Analysis_Report.docx",
-        os.path.join(os.path.dirname(__file__), "Perception_X_Research_Analysis_Report.docx")
+        os.path.expanduser("~") + "/Desktop/Perception_X_Research_Analysis_Report.docx"
     ]
     for p in paths:
         if os.path.exists(p):
             try:
-                os.startfile(p)
-                return jsonify({"status": "opened", "path": p})
+                # If on local desktop with OS GUI, try opening natively
+                if hasattr(os, "startfile") and not os.environ.get("PORT"):
+                    os.startfile(p)
+                    return jsonify({"status": "opened", "path": p})
+                else:
+                    return send_file(p, as_attachment=True, download_name="Perception_X_Research_Analysis_Report.docx")
             except Exception as e:
                 return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"error": "Report not found"}), 404
 
+@app.route("/api/health", methods=["GET"])
+def health():
+    return jsonify({"status": "healthy", "service": "Perception-X"})
+
+@app.route("/<path:path>")
+def static_proxy(path):
+    static_dir = os.path.join(os.path.dirname(__file__), "react-frontend")
+    # Check direct file in react-frontend
+    if os.path.isfile(os.path.join(static_dir, path)):
+        return send_from_directory(static_dir, path)
+    # Check path prefixed with react-frontend/
+    if path.startswith("react-frontend/"):
+        rel = path[len("react-frontend/"):]
+        if os.path.isfile(os.path.join(static_dir, rel)):
+            return send_from_directory(static_dir, rel)
+    return send_from_directory(static_dir, "index.html")
+
 def run_server():
-    port = 5000
-    url = f"http://localhost:{port}"
+    port = int(os.environ.get("PORT", 5000))
+    url = f"http://0.0.0.0:{port}"
     print(f"\n=======================================================")
-    print(f"  PERCEPTION-X REACT APPLICATION RUNNING")
-    print(f"  Frontend URL: {url}")
+    print(f"  PERCEPTION-X APPLICATION RUNNING")
+    print(f"  Listening on: {url}")
     print(f"=======================================================\n")
-    try:
-        webbrowser.open(url)
-    except Exception:
-        pass
+    # Only open browser locally, not in cloud environments like Railway
+    if not os.environ.get("RAILWAY_ENVIRONMENT") and "PORT" not in os.environ:
+        try:
+            webbrowser.open(f"http://localhost:{port}")
+        except Exception:
+            pass
     app.run(host="0.0.0.0", port=port, debug=False)
 
 if __name__ == "__main__":

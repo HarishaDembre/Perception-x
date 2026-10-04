@@ -1,4 +1,4 @@
-﻿"""
+"""
 Perception-X: Unified Multi-Stage Hierarchical Perception Pipeline
 Powered by Trained PyTorch Neural Network (models/perception_x_model.pth)
 """
@@ -17,12 +17,16 @@ from core.explainability import IllusionExplainabilityEngine
 from core.reasoning_engine import PerceptualReasoningEngine
 
 class PerceptionXPipeline:
-    def __init__(self, model_path="models/perception_x_model.pth"):
+    def __init__(self, model_path=None):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.extractor = IllusionFeatureExtractor()
         self.ambiguity_engine = QuantumTunnellingAmbiguityEngine()
         self.explainability_engine = IllusionExplainabilityEngine()
         self.reasoning_engine = PerceptualReasoningEngine()
+
+        if model_path is None:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            model_path = os.path.join(base_dir, "models", "perception_x_model.pth")
 
         # Load Trained Neural Network
         self.model = PerceptionXHierarchicalNet(num_illusion_classes=3).to(self.device)
